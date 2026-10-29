@@ -4,9 +4,6 @@
 
 PayLedger is a small merchant payments service: a TypeScript/Node API that takes card payments through Stripe's sandbox and records every cent in a double-entry ledger, plus a React dashboard for merchants and a pay page for their customers. The goal was to get the hard parts of payments right (retries, duplicate webhooks, out-of-order events, refunds that race each other) rather than to build a lot of features.
 
-**Live demo:** _add your Render link here_ · test card `4242 4242 4242 4242`, any future date, any CVC.
-The API is on Render's free tier, so it sleeps after 15 minutes idle and the first request takes about a minute to wake it up.
-
 <!-- Add dashboard + pay page screenshots to docs/ and link them here -->
 
 ## How a payment flows
@@ -114,7 +111,7 @@ RUN_E2E=1 ADMIN_TOKEN=<your admin token> npm run e2e
 
 GitHub Actions runs lint, type-check, the API tests against a Postgres service container, and both builds on every pull request. Branch protection on `main` requires that check to pass, and every change goes in through a PR using the template in `.github/` (money in cents? idempotent? errors handled?).
 
-Deploys are on [Render](https://render.com/docs/free) (API as a web service, dashboard as a static site, both from `render.yaml`) with the database on [Neon](https://neon.com/pricing). Render redeploys when `main` changes, and the API runs migrations on startup.
+`render.yaml` defines a Render deploy (API web service + static dashboard) with a Neon database; I've run it locally with the Stripe CLI forwarding webhooks.
 
 ## API
 
