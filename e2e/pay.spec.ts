@@ -1,4 +1,31 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Frame, type Page } from '@playwright/test';
+
+async function findFrameWith(page: Page, selector: string, timeoutMs = 20_000): Promise<Frame> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const frame of page.frames()) {
+      if ((await frame.locator(selector).count().catch(() => 0)) > 0) return frame;
+    }
+    await page.waitForTimeout(250);
+  }
+  throw new Error(`no frame contains ${selector}`);
+}
+
+// The Payment Element lists several methods (Card, Bank, Cash App Pay, ...)
+// as an accordion with none open, so open "Card" before looking for fields.
+async function openCardOption(page: Page, timeoutMs = 20_000) {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    for (const frame of page.frames()) {
+      const option = frame.getByText('Card', { exact: true });
+      if ((await option.count().catch(() => 0)) > 0) {
+        await option.first().click();
+        return;
+      }
+    }
+    await page.waitForTimeout(250);
+  }
+}
 
 // Full browser run of the customer pay page with Stripe's 4242 test card.
 // Needs the API, the web app and `stripe listen` all running locally with
@@ -26,7 +53,10 @@ test('customer pays a $25 link with 4242 and the merchant sees it succeed', asyn
   await page.goto(`/pay/${payLink.token}`);
   await expect(page.getByText('$25.00').first()).toBeVisible();
 
-  const card = page.frameLocator('iframe[title="Secure payment input frame"]');
+  // Stripe renders more than one iframe with this title (one is a hidden
+  // helper), so find the frame that actually holds the card number field.
+  await openCardOption(page);
+  const card = await findFrameWith(page, '[name="number"]');
   await card.locator('[name="number"]').fill('4242424242424242');
   await card.locator('[name="expiry"]').fill('12 / 34');
   await card.locator('[name="cvc"]').fill('123');
