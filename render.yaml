@@ -1,0 +1,44 @@
+# Render Blueprint: New > Blueprint in the Render dashboard, point it at this repo.
+# Secrets marked sync: false are entered in the dashboard, never committed.
+services:
+  - type: web
+    name: payledger-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm ci && npm run build -w api
+    startCommand: npm run start:prod -w api # runs migrations, then the server (free plan has no pre-deploy step)
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: DATABASE_URL
+        sync: false # Neon connection string
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # from the webhook endpoint you register in the Stripe sandbox
+      - key: WEB_ORIGIN
+        sync: false # e.g. https://payledger-web.onrender.com
+
+  - type: web
+    name: payledger-web
+    runtime: static
+    rootDir: .
+    buildCommand: npm ci && npm run build -w web
+    staticPublishPath: web/dist
+    autoDeploy: true
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false # e.g. https://payledger-api.onrender.com
+      - key: VITE_STRIPE_PUBLISHABLE_KEY
+        sync: false
